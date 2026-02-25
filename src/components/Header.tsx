@@ -25,6 +25,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const navItems = [
   { icon: Home, label: "Home", href: "/dashboard" },
@@ -46,11 +52,19 @@ export function Header() {
     <header className="fixed top-0 left-0 right-0 z-50 px-4 md:px-0">
       <div className="glass-nav mt-4 rounded-2xl mx-auto max-w-5xl border border-primary/20 bg-primary/10">
         <div className="flex items-center justify-between py-3 px-4">
-          <Link to="/dashboard" className="flex items-center gap-2 group">
-            <div className="relative flex items-center justify-center w-10 h-10 -ml-1">
+          <Link to="/dashboard" onClick={() => triggerHaptic()} className="flex items-center gap-2 group">
+            <div className="hidden md:flex items-center justify-center w-10 h-10 -ml-1">
               <Logo className="w-6 h-6" />
             </div>
-            <span className="font-semibold text-foreground hidden sm:block">Forever Green</span>
+            <span className="font-semibold text-foreground hidden md:block">Forever Green</span>
+            <div className={cn(
+              "md:hidden flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-300 bg-transparent",
+              currentPath === '/dashboard'
+                ? "border border-primary text-primary scale-105"
+                : "border border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary"
+            )}>
+              <Home className="w-4 h-4" />
+            </div>
           </Link>
 
           {/* Desktop Navigation */}
