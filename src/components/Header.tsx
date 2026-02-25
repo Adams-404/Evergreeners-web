@@ -1,4 +1,4 @@
-import { Settings, Menu, Home, BarChart3, Compass, Target, Trophy, LogOut } from "lucide-react";
+import { Settings, Menu, Home, BarChart3, Compass, Target, Trophy, LogOut, Wand2 } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Logo } from "@/components/Logo";
 import { NotificationCenter } from "@/components/NotificationCenter";
@@ -32,6 +32,7 @@ const navItems = [
   { icon: Compass, label: "Quests", href: "/quests" },
   { icon: Target, label: "Goals", href: "/goals" },
   { icon: Trophy, label: "Ranks", href: "/leaderboard" },
+  { icon: Wand2, label: "Generator", href: "/generator" },
 ];
 
 export function Header() {
