@@ -1,4 +1,4 @@
-import { Home, BarChart3, Compass, Target, User, Trophy } from "lucide-react";
+import { BarChart3, Compass, Target, User, Trophy, Wand2 } from "lucide-react";
 import { cn, triggerHaptic } from "@/lib/utils";
 import { useLocation, Link } from "react-router-dom";
 
@@ -9,11 +9,11 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { icon: Home, label: "Home", href: "/dashboard" },
   { icon: BarChart3, label: "Analytics", href: "/analytics" },
   { icon: Compass, label: "Quests", href: "/quests" },
   { icon: Target, label: "Goals", href: "/goals" },
   { icon: Trophy, label: "Ranks", href: "/leaderboard" },
+  { icon: Wand2, label: "Generator", href: "/generator" },
 ];
 
 import { useState, useEffect } from "react";
