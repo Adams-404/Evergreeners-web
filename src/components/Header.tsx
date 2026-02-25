@@ -25,6 +25,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const navItems = [
   { icon: Home, label: "Home", href: "/dashboard" },
@@ -32,7 +38,6 @@ const navItems = [
   { icon: Compass, label: "Quests", href: "/quests" },
   { icon: Target, label: "Goals", href: "/goals" },
   { icon: Trophy, label: "Ranks", href: "/leaderboard" },
-  { icon: Wand2, label: "Generator", href: "/generator" },
 ];
 
 export function Header() {
@@ -77,6 +82,24 @@ export function Header() {
           </nav>
 
           <div className="flex items-center gap-2">
+            {/* AI Generator Tool */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link
+                    to="/generator"
+                    onClick={() => triggerHaptic()}
+                    className="w-9 h-9 flex items-center justify-center rounded-full bg-secondary border border-border hover:border-primary/50 hover:bg-primary/10 transition-colors text-muted-foreground hover:text-primary group"
+                  >
+                    <Wand2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs border-border/50">
+                  AI Generator
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
             {/* Notifications */}
             <NotificationCenter />
 
