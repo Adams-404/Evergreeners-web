@@ -1,4 +1,4 @@
-import { Home, BarChart3, Compass, Target, User, Trophy } from "lucide-react";
+import { Home, BarChart3, Compass, Target, User, Trophy, Wand2 } from "lucide-react";
 import { cn, triggerHaptic } from "@/lib/utils";
 import { useLocation, Link } from "react-router-dom";
 
@@ -14,6 +14,7 @@ const navItems: NavItem[] = [
   { icon: Compass, label: "Quests", href: "/quests" },
   { icon: Target, label: "Goals", href: "/goals" },
   { icon: Trophy, label: "Ranks", href: "/leaderboard" },
+  { icon: Wand2, label: "Generator", href: "/generator" },
 ];
 
 import { useState, useEffect } from "react";

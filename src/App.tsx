@@ -14,6 +14,8 @@ import Goals from "./pages/Goals";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import Leaderboard from "./pages/Leaderboard";
+import Generator from "./pages/Generator";
+import RepoDetail from "./pages/RepoDetail";
 import NotFound from "./pages/NotFound";
 import ScrollToTop from "./components/ScrollToTop";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -89,6 +91,8 @@ const AppContents = () => {
           <Route path="/profile" element={<Profile />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/generator" element={<Generator />} />
+          <Route path="/repo/:owner/:repo" element={<RepoDetail />} />
         </Route>
 
         <Route path="*" element={<NotFound />} />

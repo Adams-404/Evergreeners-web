@@ -719,6 +719,48 @@ server.register(async (instance) => {
     });
 
 
+    // GitHub Proxy Route
+    instance.post('/api/github/proxy', async (req, reply) => {
+        const session = await getSessionFromRequest(req);
+        if (!session) return reply.status(401).send({ message: "Unauthorized" });
+
+        const userId = session.session.userId;
+        const account = await db.select().from(schema.accounts)
+            .where(and(eq(schema.accounts.userId, userId), eq(schema.accounts.providerId, 'github')))
+            .limit(1);
+
+        if (!account.length || !account[0].accessToken) {
+            return reply.status(400).send({ message: "GitHub not connected" });
+        }
+
+        const { path, method, body } = req.body as any;
+        const url = `https://api.github.com${path}`;
+
+        try {
+            const res = await fetch(url, {
+                method: method || 'GET',
+                headers: {
+                    Authorization: `Bearer ${account[0].accessToken}`,
+                    Accept: 'application/vnd.github.v3+json',
+                    ...(body ? { 'Content-Type': 'application/json' } : {})
+                },
+                body: body ? JSON.stringify(body) : undefined
+            });
+
+            // GitHub sometimes returns 204 No Content for DELETE
+            if (res.status === 204) return { success: true };
+
+            const data = await res.json();
+            if (!res.ok) {
+                return reply.status(res.status).send(data);
+            }
+            return data;
+        } catch (error) {
+            console.error("GitHub Proxy error:", error);
+            return reply.status(500).send({ message: "Failed to proxy request" });
+        }
+    });
+
     instance.get('/api/goals', async (req, reply) => {
         const session = await getSessionFromRequest(req);
         if (!session) return reply.status(401).send({ message: "Unauthorized" });
