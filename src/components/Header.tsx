@@ -93,46 +93,65 @@ export function Header() {
                   />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 bg-background border-border">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => navigate('/profile')}>
-                  <span className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-secondary overflow-hidden">
+              <DropdownMenuContent
+                align="end"
+                sideOffset={16}
+                className="w-48 p-0 bg-background/30 backdrop-blur-2xl border border-green-500/10 shadow-2xl mt-2 relative rounded-2xl"
+              >
+                {/* Arrow pointer to profile icon */}
+                <div className="absolute -top-[18px] right-2 w-5 h-5 rotate-45 bg-black border-l-2 border-t-2 border-green-500/40 -z-10" />
+
+                <div className="flex items-center justify-between p-3 border-b border-primary/5 bg-gradient-to-r from-primary/3 to-transparent backdrop-blur-sm relative rounded-t-2xl">
+                  <h3 className="font-semibold text-sm">My Account</h3>
+                </div>
+
+                <div className="p-1.5 space-y-0.5 relative bg-transparent z-10">
+                  <DropdownMenuItem
+                    onClick={() => navigate('/profile')}
+                    className="w-full p-2 cursor-pointer rounded-xl transition-all duration-200 hover:bg-primary/5 focus:bg-primary/5 focus:outline-none flex items-center gap-3"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-secondary overflow-hidden border border-primary/20 shrink-0">
                       <img
                         src={session?.user?.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(session?.user?.name || "User")}&background=random`}
                         alt="User"
                         className="w-full h-full object-cover"
                       />
                     </div>
-                    <span>Profile</span>
-                  </span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/settings')}>
-                  <Settings className="w-4 h-4 mr-2" />
-                  <span>Settings</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
+                    <span className="font-medium text-sm">Profile</span>
+                  </DropdownMenuItem>
 
-                {/* Logout with Alert Dialog Trigger logic needs to be handled carefully inside Dropdown */}
-                {/* Since nesting Dialog trigger inside MenuItem can be tricky, we can use a state or handle it via a separate hidden trigger or just simpler confirm */}
-                {/* For better UX inside dropdown, standard logout is often direct or uses a state-driven dialog. 
-                    Let's use the AlertDialog separately controlled by state? 
-                    Actually, we can put the Trigger inside the Item with `asChild` but styling can be odd.
-                    Let's just toggle a state or use the existing AlertDialog but separate from the dropdown trigger.
-                */}
-                <DropdownMenuItem
-                  className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                  onSelect={(e) => {
-                    e.preventDefault(); // Prevent dropdown from closing immediately if we were triggering a dialog, 
-                    // but here we want to trigger the alert dialog.
-                    // Simplest way: set open state for alert dialog.
-                    setLogoutDialogOpen(true);
-                  }}
-                >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  <span>Log Out</span>
-                </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => navigate('/settings')}
+                    className="w-full p-2 cursor-pointer rounded-xl transition-all duration-200 hover:bg-primary/5 focus:bg-primary/5 focus:outline-none flex items-center gap-3"
+                  >
+                    <div className="w-8 h-8 flex items-center justify-center shrink-0">
+                      <Settings className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                    <span className="font-medium text-sm">Settings</span>
+                  </DropdownMenuItem>
+                </div>
+
+                <div className="p-1.5 border-t border-primary/5 bg-gradient-to-r from-transparent to-primary/3 backdrop-blur-sm relative rounded-b-2xl z-10">
+                  {/* Logout with Alert Dialog Trigger logic needs to be handled carefully inside Dropdown */}
+                  {/* Since nesting Dialog trigger inside MenuItem can be tricky, we can use a state or handle it via a separate hidden trigger or just simpler confirm */}
+                  {/* For better UX inside dropdown, standard logout is often direct or uses a state-driven dialog. 
+                      Let's use the AlertDialog separately controlled by state? 
+                      Actually, we can put the Trigger inside the Item with `asChild` but styling can be odd.
+                      Let's just toggle a state or use the existing AlertDialog but separate from the dropdown trigger.
+                  */}
+                  <DropdownMenuItem
+                    className="w-full p-2 cursor-pointer rounded-xl transition-all duration-200 hover:bg-destructive/10 focus:bg-destructive/10 text-destructive focus:text-destructive focus:outline-none flex items-center gap-3"
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      setLogoutDialogOpen(true);
+                    }}
+                  >
+                    <div className="w-8 h-8 flex items-center justify-center shrink-0">
+                      <LogOut className="w-4 h-4" />
+                    </div>
+                    <span className="font-medium text-sm">Log Out</span>
+                  </DropdownMenuItem>
+                </div>
               </DropdownMenuContent>
             </DropdownMenu>
 
