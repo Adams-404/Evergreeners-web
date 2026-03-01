@@ -1,22 +1,20 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { FloatingNav } from "@/components/FloatingNav";
 import { Section } from "@/components/Section";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSession } from "@/lib/auth-client";
 import { githubService } from "@/lib/githubService";
 import { geminiService } from "@/lib/geminiService";
-import { FileText, Wand2, GitBranch, Github, CodeSquare, GitPullRequest, BarChart3 } from "lucide-react";
+import { FileText, GitPullRequest, Wand2, GitBranch, Rocket } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 export default function Generator() {
     const { data: session } = useSession();
     const { toast } = useToast();
-    const navigate = useNavigate();
 
     const [repos, setRepos] = useState<any[]>([]);
     const [isLoadingRepos, setIsLoadingRepos] = useState(false);
@@ -135,18 +133,62 @@ export default function Generator() {
     return (
         <div className="min-h-screen bg-background custom-scrollbar">
             <Header />
-            <main className="container pt-24 pb-32 md:pb-12 space-y-8 animate-fade-in">
-                <section>
-                    <div className="flex items-center gap-3 mb-2">
-                        <Wand2 className="w-8 h-8 text-primary" />
-                        <h1 className="text-3xl font-bold text-gradient">AI Generator</h1>
+            <main className="container pt-24 pb-32 md:pb-12 animate-fade-in space-y-10">
+
+                {/* ── Hero ── */}
+                <section className="space-y-4">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary tracking-widest uppercase">
+                        <Wand2 className="w-3 h-3" />
+                        AI-Powered · Instant Documentation
                     </div>
-                    <p className="text-muted-foreground mt-1">
-                        Build missing documentation, pull requests, and standard files in seconds.
+                    <h1 className="text-3xl sm:text-4xl font-bold text-gradient leading-tight">
+                        Generate Docs in Seconds
+                    </h1>
+                    <p className="text-muted-foreground max-w-xl leading-relaxed">
+                        Pick a GitHub repository, choose what kind of document you need — a <strong className="text-foreground/80">README</strong>, a <strong className="text-foreground/80">CONTRIBUTING</strong> guide, or an <strong className="text-foreground/80">Issue Template</strong> — and let AI write it for you. Review it, tweak it, then open a pull request directly from here.
                     </p>
+
+                    {/* Steps */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                        {[
+                            {
+                                icon: <GitBranch className="w-5 h-5 text-primary" />,
+                                step: "01",
+                                title: "Pick a Repository",
+                                desc: "Select any of your connected GitHub repositories from the dropdown.",
+                            },
+                            {
+                                icon: <Wand2 className="w-5 h-5 text-primary" />,
+                                step: "02",
+                                title: "Choose & Generate",
+                                desc: "Select the document type and hit Generate. AI analyses your repo and writes the content.",
+                            },
+                            {
+                                icon: <Rocket className="w-5 h-5 text-primary" />,
+                                step: "03",
+                                title: "Review & Deploy",
+                                desc: "Edit the preview to your liking, then open a pull request directly to your repo.",
+                            },
+                        ].map(({ icon, step, title, desc }) => (
+                            <div
+                                key={step}
+                                className="relative rounded-xl border border-white/[0.07] bg-white/[0.03] p-4 flex gap-3 items-start hover:border-primary/20 hover:bg-primary/5 transition-colors duration-200"
+                            >
+                                <div className="shrink-0 w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                                    {icon}
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-mono text-primary/60 mb-0.5">STEP {step}</p>
+                                    <p className="text-sm font-semibold text-foreground mb-1">{title}</p>
+                                    <p className="text-xs text-muted-foreground leading-relaxed">{desc}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </section>
 
-                <div className="grid md:grid-cols-2 gap-8">
+                <div className="grid md:grid-cols-2 gap-6 lg:gap-8">
+
                     <Section title="Target Repository" className="h-fit">
                         <div className="space-y-4">
                             <div className="grid grid-cols-1 gap-4">
@@ -194,36 +236,34 @@ export default function Generator() {
                                 </div>
                             </div>
 
-                            <div className="pt-4 flex flex-col gap-2">
+                            <div className="pt-4">
                                 <Button onClick={handleGenerate} disabled={isGenerating || !owner || !repo} className="w-full">
                                     {isGenerating ? "Generating..." : "Generate Documentation"}
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    onClick={() => navigate(`/repo/${owner}/${repo}`)}
-                                    disabled={!owner || !repo}
-                                    className="w-full"
-                                >
-                                    <BarChart3 className="w-4 h-4 mr-2" />
-                                    View Repository Health Analytics
                                 </Button>
                             </div>
                         </div>
                     </Section>
 
                     <Section title="Preview & Deploy" className="flex flex-col">
+                        <p className="text-xs text-muted-foreground mb-3">
+                            Your AI-generated markdown will appear below. Feel free to edit it before opening a pull request.
+                        </p>
                         <Textarea
                             className="flex-grow min-h-[300px] mb-4 font-mono text-sm"
-                            placeholder="Your generated markdown will appear here..."
+                            placeholder="Your generated documentation will appear here..."
                             value={generatedDoc}
                             onChange={(e) => setGeneratedDoc(e.target.value)}
                         />
 
-                        {generatedDoc && (
+                        {generatedDoc ? (
                             <Button onClick={deployToGithub} disabled={isDeploying} variant="secondary" className="w-full gap-2">
                                 <GitPullRequest className="w-4 h-4" />
                                 {isDeploying ? "Deploying..." : "Create PR for Changes"}
                             </Button>
+                        ) : (
+                            <p className="text-center text-xs text-muted-foreground/50 mt-2">
+                                ← Generate a document first, then deploy it here.
+                            </p>
                         )}
                     </Section>
                 </div>
