@@ -971,6 +971,80 @@ server.get('/', async (request, reply) => {
     return { hello: 'world' };
 });
 
+// ─── Dev-only email test routes ───────────────────────────────────────────────
+// NOT active in production. Use these to preview emails without creating accounts.
+//
+//   Welcome email:
+//   GET http://localhost:3000/api/dev/test-welcome?to=you@gmail.com
+//
+//   Streak reminder (simulates 14-day streak, 0 commits today):
+//   GET http://localhost:3000/api/dev/test-streak?to=you@gmail.com&streak=14
+//
+if (process.env.NODE_ENV !== 'production') {
+    // Test welcome email
+    server.get('/api/dev/test-welcome', async (req, reply) => {
+        const { to, name } = req.query as { to?: string; name?: string };
+
+        if (!to) {
+            return reply.status(400).send({
+                error: 'Missing ?to= query param',
+                example: 'GET /api/dev/test-welcome?to=you@gmail.com&name=Adam'
+            });
+        }
+
+        try {
+            const result = await sendWelcomeEmail(to, name || 'Adam');
+            return {
+                success: true,
+                message: `Welcome email sent to ${to}`,
+                resendId: (result as any)?.data?.id
+            };
+        } catch (err: any) {
+            return reply.status(500).send({ success: false, error: err.message });
+        }
+    });
+
+    // Test streak reminder email
+    server.get('/api/dev/test-streak', async (req, reply) => {
+        const { to, name, streak, username } = req.query as {
+            to?: string;
+            name?: string;
+            streak?: string;
+            username?: string;
+        };
+
+        if (!to) {
+            return reply.status(400).send({
+                error: 'Missing ?to= query param',
+                example: 'GET /api/dev/test-streak?to=you@gmail.com&streak=14&username=yourGithub'
+            });
+        }
+
+        const { sendStreakReminderEmail } = await import('./lib/email.js');
+
+        try {
+            const result = await sendStreakReminderEmail({
+                to,
+                name: name || 'Adam',
+                streak: parseInt(streak || '7'),
+                todayCommits: 0,          // always 0 so the email actually sends
+                username: username || 'yourgithubusername',
+            });
+            return {
+                success: true,
+                message: `Streak reminder sent to ${to}`,
+                resendId: (result as any)?.data?.id
+            };
+        } catch (err: any) {
+            return reply.status(500).send({ success: false, error: err.message });
+        }
+    });
+
+    console.log('📧 Dev email test routes active:');
+    console.log('   GET /api/dev/test-welcome?to=you@email.com');
+    console.log('   GET /api/dev/test-streak?to=you@email.com&streak=14');
+}
+
 const start = async () => {
     try {
         const port = Number(process.env.PORT) || 3000;
