@@ -1,36 +1,26 @@
 import cron from 'node-cron';
 import { db } from './db/index.js';
 import { users, accounts } from './db/schema.js';
-import { eq } from 'drizzle-orm';
-
-// We need to import the helper, but since it's not exported, we'll redefine it or move it to a shared file.
-// Ideally, refactor getGithubContributions to a utils file.
-// For now, I will inline the fetch logic or import if I can refactor.
-// To avoid breaking existing code heavily, I'll copy the simplified logic or try to export it from index.ts IF I can.
-// But index.ts is the entry point. best to create `src/lib/github.ts` and move it there.
-// For now, let's keep it simple and just do the cron setup here and import `getGithubContributions` if we export it, OR copy it.
-// Actually, safely refactoring `getGithubContributions` to a separate file is the best engineering practice.
-
+import { eq, and } from 'drizzle-orm';
 import { getGithubContributions } from './lib/github.js';
 import { updateUserGoals } from './lib/goals.js';
+import { sendStreakReminderEmail } from './lib/email.js';
 
 export function setupCronJobs() {
     console.log("Setting up cron jobs...");
 
-    // Run every hour: '0 * * * *'
+    // ── Hourly GitHub sync ─────────────────────────────────────────────────────
+    // Runs at the top of every hour
     cron.schedule('0 * * * *', async () => {
         console.log("Running hourly GitHub sync for all users...");
         try {
-            // Fetch all users who have a GitHub account linked
-            // We need to join users and accounts to get the token
-            // Drizzle join:
             const usersWithAccounts = await db.select({
                 user: users,
                 account: accounts
             })
                 .from(users)
                 .innerJoin(accounts, eq(users.id, accounts.userId))
-                .where(eq(users.isGithubConnected, true)); // Ensure we only try if connected
+                .where(eq(users.isGithubConnected, true));
 
             console.log(`Found ${usersWithAccounts.length} users to sync.`);
 
@@ -38,24 +28,25 @@ export function setupCronJobs() {
                 if (!account.accessToken) continue;
 
                 try {
-                    // console.log(`Syncing user: ${user.username}`);
-                    const { totalCommits, currentStreak, todayCommits, yesterdayCommits, weeklyCommits, activeDays, totalProjects, contributionCalendar } = await getGithubContributions(user.username || "", account.accessToken);
+                    const {
+                        totalCommits, currentStreak, todayCommits, yesterdayCommits,
+                        weeklyCommits, activeDays, totalProjects, contributionCalendar
+                    } = await getGithubContributions(user.username || "", account.accessToken);
 
                     await db.update(users)
                         .set({
                             streak: currentStreak,
-                            totalCommits: totalCommits,
-                            todayCommits: todayCommits,
-                            yesterdayCommits: yesterdayCommits,
-                            weeklyCommits: weeklyCommits,
-                            activeDays: activeDays,
-                            totalProjects: totalProjects,
+                            totalCommits,
+                            todayCommits,
+                            yesterdayCommits,
+                            weeklyCommits,
+                            activeDays,
+                            totalProjects,
                             contributionData: contributionCalendar,
                             updatedAt: new Date()
                         })
                         .where(eq(users.id, user.id));
 
-                    // Update User Goals based on new stats
                     await updateUserGoals(user.id, {
                         currentStreak,
                         weeklyCommits,
@@ -69,9 +60,72 @@ export function setupCronJobs() {
                 }
             }
             console.log("Hourly sync complete.");
-
         } catch (error) {
-            console.error("Cron job error:", error);
+            console.error("Hourly cron job error:", error);
+        }
+    });
+
+    // ── Daily streak reminder ──────────────────────────────────────────────────
+    // Fires at 8 PM server time every day.
+    // Sends an email to users who:
+    //   1. Have GitHub connected
+    //   2. Have emailNotifications enabled (default: true after GitHub connect)
+    //   3. Have NOT yet committed today
+    cron.schedule('0 20 * * *', async () => {
+        console.log("Running daily streak reminder emails...");
+        try {
+            // Fetch all GitHub-connected users who have notifications enabled
+            const usersToNotify = await db.select({
+                user: users,
+                account: accounts
+            })
+                .from(users)
+                .innerJoin(accounts, and(
+                    eq(users.id, accounts.userId),
+                    eq(accounts.providerId, 'github')
+                ))
+                .where(and(
+                    eq(users.isGithubConnected, true),
+                    eq(users.emailNotifications, true)
+                ));
+
+            console.log(`Found ${usersToNotify.length} users eligible for streak reminder.`);
+
+            let sent = 0;
+            let skipped = 0;
+
+            for (const { user, account } of usersToNotify) {
+                // Must have an email and a GitHub access token
+                if (!user.email || !account.accessToken) {
+                    skipped++;
+                    continue;
+                }
+
+                try {
+                    // sendStreakReminderEmail internally skips if todayCommits > 0
+                    await sendStreakReminderEmail({
+                        to: user.email,
+                        name: user.name || user.username || 'Dev',
+                        streak: user.streak || 0,
+                        todayCommits: user.todayCommits || 0,
+                        username: user.username || '',
+                    });
+
+                    // If todayCommits > 0, the function returns early without sending
+                    if ((user.todayCommits || 0) === 0) {
+                        sent++;
+                    } else {
+                        skipped++;
+                    }
+                } catch (err) {
+                    console.error(`Failed to send reminder to ${user.email}:`, err);
+                    skipped++;
+                }
+            }
+
+            console.log(`Streak reminders done. Sent: ${sent}, Skipped/already committed: ${skipped}`);
+        } catch (error) {
+            console.error("Streak reminder cron error:", error);
         }
     });
 }

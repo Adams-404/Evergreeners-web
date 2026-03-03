@@ -11,6 +11,7 @@ import { eq, and, desc, gt } from 'drizzle-orm';
 import { getGithubContributions, checkQuestProgress } from './lib/github.js';
 import { setupCronJobs } from './cron.js';
 import { updateUserGoals } from './lib/goals.js';
+import { sendWelcomeEmail } from './lib/email.js';
 
 /**
  * Helper function to get session from request.
@@ -318,7 +319,8 @@ server.register(async (instance) => {
 
         if (!user.length) return reply.status(404).send({ message: "User not found" });
 
-        return { user: user[0] };
+        // Include notification preference in response
+        return { user: { ...user[0], emailNotifications: user[0].emailNotifications ?? true } };
     });
 
     // DELETE User Account Route
@@ -915,6 +917,53 @@ server.register(async (instance) => {
 
         // For now, return empty array to silence 404s
         return { notifications: [] };
+    });
+
+    // PUT /api/user/notifications — toggle email notification preference
+    instance.put('/api/user/notifications', async (req, reply) => {
+        const session = await getSessionFromRequest(req);
+        if (!session) return reply.status(401).send({ message: "Unauthorized" });
+
+        const userId = session.session.userId;
+        const body = req.body as any;
+
+        if (typeof body.emailNotifications !== 'boolean') {
+            return reply.status(400).send({ message: 'emailNotifications must be a boolean' });
+        }
+
+        try {
+            await db.update(schema.users)
+                .set({ emailNotifications: body.emailNotifications, updatedAt: new Date() })
+                .where(eq(schema.users.id, userId));
+
+            return { success: true, emailNotifications: body.emailNotifications };
+        } catch (error) {
+            console.error('Notifications update error:', error);
+            return reply.status(500).send({ message: 'Failed to update notification setting' });
+        }
+    });
+
+    // POST /api/user/welcome-email — called from frontend after a brand-new email sign-up
+    instance.post('/api/user/welcome-email', async (req, reply) => {
+        const session = await getSessionFromRequest(req);
+        if (!session) return reply.status(401).send({ message: "Unauthorized" });
+
+        const userId = session.session.userId;
+
+        try {
+            const userRows = await db.select().from(schema.users).where(eq(schema.users.id, userId)).limit(1);
+            if (!userRows.length) return reply.status(404).send({ message: 'User not found' });
+
+            const user = userRows[0];
+            if (!user.email) return reply.status(400).send({ message: 'No email address on file' });
+
+            await sendWelcomeEmail(user.email, user.name || user.username || 'Developer');
+            return { success: true };
+        } catch (error) {
+            console.error('Welcome email error:', error);
+            // Don't fail loudly — email is best-effort
+            return { success: false, message: String(error) };
+        }
     });
 });
 

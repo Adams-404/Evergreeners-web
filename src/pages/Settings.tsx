@@ -28,12 +28,13 @@ import {
 
 export default function Settings() {
   const [timezone, setTimezone] = useState("America/Los_Angeles");
-  const [notifications, setNotifications] = useState(true);
+  const [emailNotifications, setEmailNotifications] = useState(true);
   const [emailDigest, setEmailDigest] = useState(true);
   const [publicProfile, setPublicProfile] = useState(true);
   const [darkMode, setDarkMode] = useState(true);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [savingNotif, setSavingNotif] = useState(false);
 
   const [isGithubConnected, setIsGithubConnected] = useState(false);
   const [githubUsername, setGithubUsername] = useState("");
@@ -75,10 +76,13 @@ export default function Settings() {
         });
         if (res.ok) {
           const data = await res.json();
-          // Rely on listAccounts for connection status, but use this for username/public toggle
           if (data.user) {
             setGithubUsername(data.user.username);
             if (typeof data.user.isPublic !== 'undefined') setPublicProfile(data.user.isPublic);
+            // Load real notification preference (defaults to true if column not yet migrated)
+            if (typeof data.user.emailNotifications !== 'undefined') {
+              setEmailNotifications(data.user.emailNotifications ?? true);
+            }
           }
         }
       } catch (e) {
@@ -87,6 +91,27 @@ export default function Settings() {
     };
     fetchSettings();
   }, [session]);
+
+  // Persist notification preference to backend
+  const saveNotificationPref = async (value: boolean) => {
+    setSavingNotif(true);
+    try {
+      const res = await fetch(getApiUrl("/api/user/notifications"), {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emailNotifications: value }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      toast.success(value ? "Streak reminders enabled ✅" : "Streak reminders disabled");
+    } catch {
+      toast.error("Failed to save notification setting");
+      // Revert optimistic update
+      setEmailNotifications(!value);
+    } finally {
+      setSavingNotif(false);
+    }
+  };
 
   const timezones = [
     "America/Los_Angeles",
@@ -305,35 +330,46 @@ export default function Settings() {
             {/* Notifications Section */}
             <Section title="Notifications" className="animate-fade-up" style={{ animationDelay: "0.2s" }}>
               <div className="space-y-1 rounded-xl border border-border overflow-hidden">
-                {/* Push Notifications */}
-                <div className="flex items-center justify-between p-4 bg-secondary/30">
+                {/* Streak Reminder Emails */}
+                <div className={cn(
+                  "flex items-center justify-between p-4 bg-secondary/30",
+                  !isGithubConnected && "opacity-60"
+                )}>
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
                       <Bell className="w-5 h-5 text-muted-foreground" />
                     </div>
                     <div>
-                      <p className="font-medium">Push Notifications</p>
-                      <p className="text-sm text-muted-foreground">Streak reminders & updates</p>
+                      <p className="font-medium">Streak Reminders</p>
+                      <p className="text-sm text-muted-foreground">
+                        {isGithubConnected
+                          ? "Daily email if you haven't committed yet"
+                          : "Connect GitHub to enable this"}
+                      </p>
                     </div>
                   </div>
                   <button
+                    disabled={!isGithubConnected || savingNotif}
                     onClick={() => {
-                      setNotifications(!notifications);
-                      toast.success(notifications ? "Notifications disabled" : "Notifications enabled");
+                      if (!isGithubConnected) return;
+                      const next = !emailNotifications;
+                      setEmailNotifications(next);
+                      saveNotificationPref(next);
                     }}
                     className={cn(
                       "w-12 h-6 rounded-full p-1 transition-colors duration-300",
-                      notifications ? "bg-primary" : "bg-muted"
+                      emailNotifications && isGithubConnected ? "bg-primary" : "bg-muted",
+                      (!isGithubConnected || savingNotif) && "cursor-not-allowed"
                     )}
                   >
                     <div className={cn(
                       "w-4 h-4 rounded-full bg-white transition-transform duration-300",
-                      notifications ? "translate-x-6" : "translate-x-0"
+                      emailNotifications && isGithubConnected ? "translate-x-6" : "translate-x-0"
                     )} />
                   </button>
                 </div>
 
-                {/* Email Digest */}
+                {/* Weekly Email Digest */}
                 <div className="flex items-center justify-between p-4 bg-secondary/30">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">

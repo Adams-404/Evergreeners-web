@@ -27,7 +27,8 @@
     "node-cron": "^4.2.1",
     "node-fetch": "^3.3.2",
     "octokit": "^5.0.5",
-    "postgres": "^3.4.8"
+    "postgres": "^3.4.8",
+    "resend": "^6.9.3"
   },
   "devDependencies": {
     "@types/node": "^25.0.9",

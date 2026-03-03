@@ -31,9 +31,20 @@ export default function Signup() {
             password,
             name: `${firstName} ${lastName}`.trim(),
         }, {
-            onSuccess: () => {
-                // navigate("/dashboard");
+            onSuccess: async () => {
                 localStorage.setItem("signup_success", "true");
+
+                // Fire-and-forget welcome email (non-blocking)
+                try {
+                    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+                    await fetch(`${apiUrl}/api/user/welcome-email`, {
+                        method: "POST",
+                        credentials: "include",
+                    });
+                } catch (_) {
+                    // Silently ignore — welcome email failure shouldn't block the user
+                }
+
                 window.location.href = "/dashboard";
             },
             onError: (ctx) => {
@@ -42,6 +53,7 @@ export default function Signup() {
             }
         });
     };
+
 
     const handleGithubLogin = async () => {
         setLoading(true);
