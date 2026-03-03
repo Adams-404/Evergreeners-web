@@ -42,28 +42,36 @@ export default function Settings() {
 
   const { data: session } = useSession();
 
-  // Check connection status
-  useEffect(() => {
-    const checkConnections = async () => {
-      const user = session?.user as any;
-      if (user && typeof user.isGithubConnected === 'boolean') {
-        setIsGithubConnected(user.isGithubConnected);
-        return;
+  // Always use listAccounts() for real-time connection status —
+  // never rely on session.user.isGithubConnected which can be stale after OAuth
+  const refreshConnectionStatus = async () => {
+    try {
+      const accounts = await authClient.listAccounts();
+      if (accounts.data) {
+        const hasGithub = accounts.data.some((acc) => acc.providerId === "github");
+        setIsGithubConnected(hasGithub);
+        return hasGithub;
       }
+    } catch (error) {
+      console.error("Failed to list accounts", error);
+    }
+    return false;
+  };
 
-      try {
-        const accounts = await authClient.listAccounts();
-        if (accounts.data) {
-          // Fix provider check for TypeScript
-          const hasGithub = accounts.data.some((acc) => acc.providerId === "github");
-          setIsGithubConnected(hasGithub);
+  // On mount: detect if we just returned from GitHub OAuth (?gh=1)
+  // and immediately refresh the connection state + toast success
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("gh") === "1") {
+      // Clean up the URL param without a page reload
+      window.history.replaceState({}, "", window.location.pathname);
+      refreshConnectionStatus().then((connected) => {
+        if (connected) {
+          toast.success("GitHub connected successfully");
         }
-      } catch (error) {
-        console.error("Failed to list accounts", error);
-      }
-    };
-    if (session) {
-      checkConnections();
+      });
+    } else if (session) {
+      refreshConnectionStatus();
     }
   }, [session]);
 
@@ -157,16 +165,25 @@ export default function Settings() {
     );
   };
 
-  // Connect GitHub
+  // Connect GitHub — use linkSocial (not signIn.social) when already logged in
+  // ?gh=1 param lets us detect the return and update the UI immediately
   const handleConnectGithub = async () => {
     try {
-      await authClient.signIn.social({
+      await authClient.linkSocial({
         provider: "github",
-        callbackURL: `${window.location.origin}/settings`
+        callbackURL: `${window.location.origin}/settings?gh=1`
       });
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to initiate GitHub connection");
+    } catch (err: any) {
+      // If linkSocial isn't available on this version, fall back to signIn.social
+      try {
+        await (authClient as any).signIn.social({
+          provider: "github",
+          callbackURL: `${window.location.origin}/settings?gh=1`
+        });
+      } catch (fallbackErr) {
+        console.error(fallbackErr);
+        toast.error("Failed to initiate GitHub connection");
+      }
     }
   };
 

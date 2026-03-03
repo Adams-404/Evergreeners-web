@@ -61,8 +61,7 @@ export function setupCronJobs() {
     // Two modes — the email function handles which variant to render:
     //   - todayCommits > 0  → celebration / summary card
     //   - todayCommits === 0 → streak-at-risk warning
-    // TEMP: 23:30 for live test — change back to '0 20 * * *' after
-    cron.schedule('30 23 * * *', async () => {
+    cron.schedule('0 20 * * *', async () => {
         console.log("Running daily digest emails...");
         try {
             const usersToNotify = await db.select({ user: users, account: accounts })

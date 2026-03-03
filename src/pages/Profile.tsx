@@ -75,10 +75,8 @@ export default function Profile() {
   useEffect(() => {
     const initProfile = async () => {
       if (session?.user) {
-        // Initial hydrate from session (fast but potentially stale)
         const user = session.user as any;
 
-        // Optimistically set from session first to show SOMETHING immediately
         setProfile(prev => ({
           ...prev,
           name: user.name || "Tree Planter",
@@ -96,11 +94,7 @@ export default function Profile() {
         }));
         setIsPublic(user.isPublic !== false);
 
-        // Fetch FRESH data only (no profile overwrite if not needed, but here we want fresh stats AND fresh profile info if it changed)
-        // Actually, the issue was user edits disappearing.
-        // We fetching /api/user/profile ensures we display what is in the DB, not what is in the stale session cookie.
         try {
-          // Use getApiUrl helper instead of manually constructing
           const url = getApiUrl('/api/user/profile');
           const res = await fetch(url, { credentials: "include" });
           if (res.ok) {
@@ -120,7 +114,6 @@ export default function Profile() {
               bestRank: freshUser.bestRank || prev.bestRank,
               contributionData: freshUser.contributionData || prev.contributionData
             }));
-            // Also update the edit form state so it doesn't revert if they open it
             setEditedProfile(prev => ({ ...prev, ...freshUser }));
             setIsPublic(freshUser.isPublic !== false);
           }
@@ -128,22 +121,35 @@ export default function Profile() {
           console.error("Failed to fetch fresh profile", e);
         }
 
-        if (typeof user.isGithubConnected === 'boolean') {
-          setIsGithubConnected(user.isGithubConnected);
-        } else {
-          try {
-            const accounts = await authClient.listAccounts();
-            if (accounts.data) {
-              const hasGithub = accounts.data.some((acc) => acc.providerId === "github");
-              setIsGithubConnected(hasGithub);
-            }
-          } catch (error) {
-            console.error("Failed to list accounts", error);
+        // Always use listAccounts for real-time status — session can be stale after OAuth
+        try {
+          const accounts = await authClient.listAccounts();
+          if (accounts.data) {
+            const hasGithub = accounts.data.some((acc) => acc.providerId === "github");
+            setIsGithubConnected(hasGithub);
           }
+        } catch (error) {
+          console.error("Failed to list accounts", error);
         }
       }
     };
-    initProfile();
+
+    // Detect if we just returned from GitHub OAuth (?gh=1)
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("gh") === "1") {
+      window.history.replaceState({}, "", window.location.pathname);
+      // Re-run full init which will call listAccounts and pick up the new link
+      initProfile().then(async () => {
+        try {
+          const accounts = await authClient.listAccounts();
+          const hasGithub = accounts.data?.some((acc) => acc.providerId === "github") ?? false;
+          setIsGithubConnected(hasGithub);
+          if (hasGithub) toast.success("GitHub connected successfully");
+        } catch { }
+      });
+    } else {
+      initProfile();
+    }
   }, [session]);
 
   const syncGithubData = async (silent = false) => {
@@ -249,11 +255,26 @@ export default function Profile() {
     }
   };
 
+  // Connect GitHub — use linkSocial (correct API for linking to existing account)
+  // ?gh=1 lets us detect the return and update UI immediately without a refresh
   const handleConnectGithub = async () => {
-    await signIn.social({
-      provider: "github",
-      callbackURL: `${window.location.origin}/dashboard`
-    });
+    try {
+      await authClient.linkSocial({
+        provider: "github",
+        callbackURL: `${window.location.origin}/profile?gh=1`
+      });
+    } catch (err: any) {
+      // Fallback for older better-auth versions
+      try {
+        await signIn.social({
+          provider: "github",
+          callbackURL: `${window.location.origin}/profile?gh=1`
+        });
+      } catch (fallbackErr) {
+        console.error(fallbackErr);
+        toast.error("Failed to initiate GitHub connection");
+      }
+    }
   };
 
   return (
