@@ -972,13 +972,16 @@ server.get('/', async (request, reply) => {
 });
 
 // ─── Dev-only email test routes ───────────────────────────────────────────────
+// ─── Dev-only email test routes ───────────────────────────────────────────────
 // NOT active in production. Use these to preview emails without creating accounts.
 //
 //   Welcome email:
 //   GET http://localhost:3000/api/dev/test-welcome?to=you@gmail.com
 //
-//   Streak reminder (simulates 14-day streak, 0 commits today):
-//   GET http://localhost:3000/api/dev/test-streak?to=you@gmail.com&streak=14
+//   Daily digest (pulls your REAL stats from the DB automatically):
+//   GET http://localhost:3000/api/dev/test-streak?to=you@gmail.com
+//   Override stats manually:
+//   GET http://localhost:3000/api/dev/test-streak?to=you@gmail.com&committed=true&streak=14
 //
 if (process.env.NODE_ENV !== 'production') {
     // Test welcome email
@@ -988,12 +991,17 @@ if (process.env.NODE_ENV !== 'production') {
         if (!to) {
             return reply.status(400).send({
                 error: 'Missing ?to= query param',
-                example: 'GET /api/dev/test-welcome?to=you@gmail.com&name=Adam'
+                example: '/api/dev/test-welcome?to=you@gmail.com&name=Adam'
             });
         }
 
         try {
-            const result = await sendWelcomeEmail(to, name || 'Adam');
+            // Try to find the real user name from DB
+            const userRow = await db.select().from(schema.users)
+                .where(eq(schema.users.email, to)).limit(1);
+            const displayName = name || userRow[0]?.name || userRow[0]?.username || 'there';
+
+            const result = await sendWelcomeEmail(to, displayName);
             return {
                 success: true,
                 message: `Welcome email sent to ${to}`,
@@ -1004,35 +1012,69 @@ if (process.env.NODE_ENV !== 'production') {
         }
     });
 
-    // Test streak reminder email
+    // Test daily digest — pulls REAL stats from DB when the email matches a user
     server.get('/api/dev/test-streak', async (req, reply) => {
-        const { to, name, streak, username } = req.query as {
+        const query = req.query as {
             to?: string;
-            name?: string;
-            streak?: string;
-            username?: string;
+            committed?: string;   // 'true' to simulate a committed day
+            streak?: string;      // override streak count
         };
 
-        if (!to) {
+        if (!query.to) {
             return reply.status(400).send({
                 error: 'Missing ?to= query param',
-                example: 'GET /api/dev/test-streak?to=you@gmail.com&streak=14&username=yourGithub'
+                example: '/api/dev/test-streak?to=you@gmail.com'
             });
         }
 
-        const { sendStreakReminderEmail } = await import('./lib/email.js');
+        const { sendDailyDigestEmail } = await import('./lib/email.js');
 
         try {
-            const result = await sendStreakReminderEmail({
-                to,
-                name: name || 'Adam',
-                streak: parseInt(streak || '7'),
-                todayCommits: 0,          // always 0 so the email actually sends
-                username: username || 'yourgithubusername',
+            // Look up actual user stats from DB by email
+            const userRow = await db.select().from(schema.users)
+                .where(eq(schema.users.email, query.to)).limit(1);
+
+            const user = userRow[0];
+
+            // Use real DB stats if found, fall back to test defaults if not
+            const realStreak = user?.streak ?? 0;
+            const realToday = user?.todayCommits ?? 0;
+            const realTotal = user?.totalCommits ?? 0;
+            const realWeekly = user?.weeklyCommits ?? 0;
+            const realName = user?.name || user?.username || 'Dev';
+            const realUsername = user?.username || 'github-user';
+
+            // Allow manual overrides via query params
+            const overrideCommitted = query.committed === 'true';
+            const overrideStreak = query.streak ? parseInt(query.streak) : null;
+
+            const finalStreak = overrideStreak ?? realStreak;
+            // If ?committed=true override is passed, simulate 5 commits today
+            const finalToday = query.committed !== undefined
+                ? (overrideCommitted ? 5 : 0)
+                : realToday;
+
+            const result = await sendDailyDigestEmail({
+                to: query.to,
+                name: realName,
+                username: realUsername,
+                streak: finalStreak,
+                todayCommits: finalToday,
+                totalCommits: realTotal,
+                weeklyCommits: realWeekly,
             });
+
             return {
                 success: true,
-                message: `Streak reminder sent to ${to}`,
+                message: `Daily digest sent to ${query.to}`,
+                stats: {
+                    source: user ? 'database (real stats)' : 'defaults (no user found for this email)',
+                    streak: finalStreak,
+                    todayCommits: finalToday,
+                    totalCommits: realTotal,
+                    weeklyCommits: realWeekly,
+                    mode: finalToday > 0 ? 'committed — celebration email' : 'no commits — warning email'
+                },
                 resendId: (result as any)?.data?.id
             };
         } catch (err: any) {
@@ -1042,7 +1084,9 @@ if (process.env.NODE_ENV !== 'production') {
 
     console.log('📧 Dev email test routes active:');
     console.log('   GET /api/dev/test-welcome?to=you@email.com');
-    console.log('   GET /api/dev/test-streak?to=you@email.com&streak=14');
+    console.log('   GET /api/dev/test-streak?to=you@email.com             ← uses your real stats');
+    console.log('   GET /api/dev/test-streak?to=you@email.com&committed=true  ← simulate committed day');
+    console.log('   GET /api/dev/test-streak?to=you@email.com&committed=false ← simulate no commits');
 }
 
 const start = async () => {

@@ -4,20 +4,17 @@ import { users, accounts } from './db/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { getGithubContributions } from './lib/github.js';
 import { updateUserGoals } from './lib/goals.js';
-import { sendStreakReminderEmail } from './lib/email.js';
+import { sendDailyDigestEmail } from './lib/email.js';
 
 export function setupCronJobs() {
     console.log("Setting up cron jobs...");
 
     // ── Hourly GitHub sync ─────────────────────────────────────────────────────
-    // Runs at the top of every hour
+    // Refreshes streak, commits, and stats for all GitHub-connected users
     cron.schedule('0 * * * *', async () => {
         console.log("Running hourly GitHub sync for all users...");
         try {
-            const usersWithAccounts = await db.select({
-                user: users,
-                account: accounts
-            })
+            const usersWithAccounts = await db.select({ user: users, account: accounts })
                 .from(users)
                 .innerJoin(accounts, eq(users.id, accounts.userId))
                 .where(eq(users.isGithubConnected, true));
@@ -26,7 +23,6 @@ export function setupCronJobs() {
 
             for (const { user, account } of usersWithAccounts) {
                 if (!account.accessToken) continue;
-
                 try {
                     const {
                         totalCommits, currentStreak, todayCommits, yesterdayCommits,
@@ -48,13 +44,8 @@ export function setupCronJobs() {
                         .where(eq(users.id, user.id));
 
                     await updateUserGoals(user.id, {
-                        currentStreak,
-                        weeklyCommits,
-                        activeDays,
-                        totalProjects,
-                        contributionCalendar
+                        currentStreak, weeklyCommits, activeDays, totalProjects, contributionCalendar
                     });
-
                 } catch (err) {
                     console.error(`Failed to sync user ${user.username}:`, err);
                 }
@@ -65,20 +56,16 @@ export function setupCronJobs() {
         }
     });
 
-    // ── Daily streak reminder ──────────────────────────────────────────────────
-    // Fires at 8 PM server time every day.
-    // Sends an email to users who:
-    //   1. Have GitHub connected
-    //   2. Have emailNotifications enabled (default: true after GitHub connect)
-    //   3. Have NOT yet committed today
-    cron.schedule('0 20 * * *', async () => {
-        console.log("Running daily streak reminder emails...");
+    // ── Daily digest at 8 PM ──────────────────────────────────────────────────
+    // Sends to every GitHub-connected user with emailNotifications enabled.
+    // Two modes — the email function handles which variant to render:
+    //   - todayCommits > 0  → celebration / summary card
+    //   - todayCommits === 0 → streak-at-risk warning
+    // TEMP: 23:30 for live test — change back to '0 20 * * *' after
+    cron.schedule('30 23 * * *', async () => {
+        console.log("Running daily digest emails...");
         try {
-            // Fetch all GitHub-connected users who have notifications enabled
-            const usersToNotify = await db.select({
-                user: users,
-                account: accounts
-            })
+            const usersToNotify = await db.select({ user: users, account: accounts })
                 .from(users)
                 .innerJoin(accounts, and(
                     eq(users.id, accounts.userId),
@@ -89,43 +76,34 @@ export function setupCronJobs() {
                     eq(users.emailNotifications, true)
                 ));
 
-            console.log(`Found ${usersToNotify.length} users eligible for streak reminder.`);
+            console.log(`Sending daily digest to ${usersToNotify.length} users.`);
 
             let sent = 0;
-            let skipped = 0;
+            let failed = 0;
 
-            for (const { user, account } of usersToNotify) {
-                // Must have an email and a GitHub access token
-                if (!user.email || !account.accessToken) {
-                    skipped++;
-                    continue;
-                }
+            for (const { user } of usersToNotify) {
+                if (!user.email) { failed++; continue; }
 
                 try {
-                    // sendStreakReminderEmail internally skips if todayCommits > 0
-                    await sendStreakReminderEmail({
+                    await sendDailyDigestEmail({
                         to: user.email,
                         name: user.name || user.username || 'Dev',
+                        username: user.username || '',
                         streak: user.streak || 0,
                         todayCommits: user.todayCommits || 0,
-                        username: user.username || '',
+                        totalCommits: user.totalCommits || 0,
+                        weeklyCommits: user.weeklyCommits || 0,
                     });
-
-                    // If todayCommits > 0, the function returns early without sending
-                    if ((user.todayCommits || 0) === 0) {
-                        sent++;
-                    } else {
-                        skipped++;
-                    }
+                    sent++;
                 } catch (err) {
-                    console.error(`Failed to send reminder to ${user.email}:`, err);
-                    skipped++;
+                    console.error(`Failed to send digest to ${user.email}:`, err);
+                    failed++;
                 }
             }
 
-            console.log(`Streak reminders done. Sent: ${sent}, Skipped/already committed: ${skipped}`);
+            console.log(`Daily digest done. Sent: ${sent}, Failed: ${failed}`);
         } catch (error) {
-            console.error("Streak reminder cron error:", error);
+            console.error("Daily digest cron error:", error);
         }
     });
 }

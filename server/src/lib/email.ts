@@ -6,9 +6,6 @@ const FROM_EMAIL = process.env.EMAIL_FROM || 'Evergreeners <noreply@yourdomain.c
 const APP_URL = process.env.APP_URL || 'https://evergreeners.dev';
 
 // ─── Shared shell ─────────────────────────────────────────────────────────────
-// Light by default. Dark mode via @media (prefers-color-scheme: dark) for
-// clients that support it (Apple Mail, Outlook app). Gmail handles its own
-// dark mode inversion — keeping body background transparent lets it do that.
 const emailShell = (body: string) => `
 <!DOCTYPE html>
 <html lang="en" xmlns:v="urn:schemas-microsoft-com:vml">
@@ -20,24 +17,22 @@ const emailShell = (body: string) => `
   <meta name="supported-color-schemes" content="light dark" />
   <title>Evergreeners</title>
   <style>
-    /* Reset */
     * { box-sizing: border-box; }
     body { margin: 0; padding: 0; }
-
-    /* Dark mode overrides — supported by Apple Mail, Outlook app, Fastmail */
     @media (prefers-color-scheme: dark) {
-      body, .email-bg { background-color: #0d0d0d !important; }
-      .email-card    { background-color: #141414 !important; border-color: #1f1f1f !important; }
-      .text-heading  { color: #f5f5f5 !important; }
-      .text-body     { color: #8a8a8a !important; }
-      .text-muted    { color: #525252 !important; }
-      .divider       { background-color: #1f1f1f !important; }
-      .stat-box      { background-color: #1a1a1a !important; border-color: #242424 !important; }
-      .footer-text   { color: #404040 !important; }
-      .footer-link   { color: #525252 !important; }
-      .step-label    { color: #525252 !important; }
-      .secondary-link { color: #525252 !important; }
-      .cta-secondary { color: #525252 !important; }
+      body, .email-bg   { background-color: #0d0d0d !important; }
+      .email-card       { background-color: #141414 !important; border-color: #1f1f1f !important; }
+      .text-heading     { color: #f5f5f5 !important; }
+      .text-body        { color: #8a8a8a !important; }
+      .text-muted       { color: #525252 !important; }
+      .divider          { background-color: #1f1f1f !important; }
+      .stat-box         { background-color: #1a1a1a !important; border-color: #242424 !important; }
+      .stat-label       { color: #525252 !important; }
+      .stat-unit        { color: #525252 !important; }
+      .footer-link      { color: #525252 !important; }
+      .footer-text      { color: #404040 !important; }
+      .cta-secondary    { color: #525252 !important; }
+      .step-label       { color: #525252 !important; }
     }
   </style>
 </head>
@@ -45,13 +40,12 @@ const emailShell = (body: string) => `
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
     <tr>
       <td class="email-bg" align="center" style="padding:48px 16px;background-color:#f4f4f5;">
-
         <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%;">
 
           <!-- Wordmark -->
           <tr>
             <td style="padding-bottom:24px;">
-              <span style="font-family:ui-monospace,'SF Mono','Fira Code','Cascadia Code',monospace;font-size:13px;font-weight:700;letter-spacing:0.12em;color:#10b981;text-transform:uppercase;">EVERGREENERS</span>
+              <span style="font-family:ui-monospace,'SF Mono','Fira Code',monospace;font-size:13px;font-weight:700;letter-spacing:0.12em;color:#10b981;text-transform:uppercase;">EVERGREENERS</span>
             </td>
           </tr>
 
@@ -81,7 +75,6 @@ const emailShell = (body: string) => `
 </body>
 </html>`;
 
-// Reusable divider row
 const divider = `
   <tr>
     <td style="padding:24px 0;">
@@ -96,7 +89,6 @@ export async function sendWelcomeEmail(to: string, name: string) {
 
     const body = `
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-
         <tr>
           <td style="padding-bottom:8px;">
             <h1 class="text-heading" style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Helvetica,Arial,sans-serif;font-size:26px;font-weight:700;color:#09090b;letter-spacing:-0.4px;line-height:1.3;">
@@ -104,7 +96,6 @@ export async function sendWelcomeEmail(to: string, name: string) {
             </h1>
           </td>
         </tr>
-
         <tr>
           <td style="padding-bottom:4px;">
             <p class="text-body" style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;color:#52525b;line-height:1.75;">
@@ -115,14 +106,12 @@ export async function sendWelcomeEmail(to: string, name: string) {
 
         ${divider}
 
-        <!-- Steps -->
         <tr>
           <td>
             <p class="step-label" style="margin:0 0 20px;font-family:ui-monospace,'SF Mono',monospace;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#a1a1aa;">
               Get started
             </p>
 
-            <!-- Step 01 -->
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:16px;">
               <tr>
                 <td width="28" valign="top" style="padding-top:2px;">
@@ -135,8 +124,6 @@ export async function sendWelcomeEmail(to: string, name: string) {
                 </td>
               </tr>
             </table>
-
-            <!-- Step 02 -->
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:16px;">
               <tr>
                 <td width="28" valign="top" style="padding-top:2px;">
@@ -149,8 +136,6 @@ export async function sendWelcomeEmail(to: string, name: string) {
                 </td>
               </tr>
             </table>
-
-            <!-- Step 03 -->
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr>
                 <td width="28" valign="top" style="padding-top:2px;">
@@ -168,7 +153,6 @@ export async function sendWelcomeEmail(to: string, name: string) {
 
         ${divider}
 
-        <!-- CTA -->
         <tr>
           <td>
             <table role="presentation" cellpadding="0" cellspacing="0" border="0">
@@ -187,7 +171,6 @@ export async function sendWelcomeEmail(to: string, name: string) {
             </table>
           </td>
         </tr>
-
       </table>`;
 
     try {
@@ -205,83 +188,120 @@ export async function sendWelcomeEmail(to: string, name: string) {
     }
 }
 
-// ─── Streak Reminder Email ────────────────────────────────────────────────────
+// ─── Daily Digest Email ───────────────────────────────────────────────────────
+// Sent every day at 8 PM regardless of commit status.
+// Two modes:
+//   - Committed today  → celebration / summary card
+//   - No commits today → streak-at-risk warning
 
-interface StreakReminderOptions {
+export interface DailyDigestOptions {
     to: string;
     name: string;
+    username: string;
     streak: number;
     todayCommits: number;
-    username: string;
+    totalCommits: number;
+    weeklyCommits: number;
 }
 
-export async function sendStreakReminderEmail({
-    to, name, streak, todayCommits, username
-}: StreakReminderOptions) {
-    // Don't nag someone who already committed today
-    if (todayCommits > 0) {
-        console.log(`Skipping reminder for ${username} — already committed today (${todayCommits} commits).`);
-        return;
-    }
-
+export async function sendDailyDigestEmail(opts: DailyDigestOptions) {
+    const { to, name, username, streak, todayCommits, totalCommits, weeklyCommits } = opts;
     const displayName = name?.split(' ')[0] || username || 'there';
-    const streakLabel = streak === 1 ? '1-day streak' : `${streak}-day streak`;
+    const committed = todayCommits > 0;
 
-    const subjectLine = streak > 0
-        ? `Your ${streakLabel} is at risk`
-        : 'No commits today — keep the habit going';
+    // ── Subject line ──
+    const subject = committed
+        ? streak > 0
+            ? `${streak}-day streak — ${todayCommits} commit${todayCommits !== 1 ? 's' : ''} today`
+            : `${todayCommits} commit${todayCommits !== 1 ? 's' : ''} today — keep it going`
+        : streak > 0
+            ? `Your ${streak}-day streak is at risk`
+            : 'No commits today — start your streak';
 
-    const contextLine = streak >= 30
-        ? `${streak} days without a break. That's not something you want to reset.`
-        : streak >= 7
-            ? `${streak} days in. You're building real momentum — don't stop now.`
-            : streak > 0
-                ? `${streak} days going. Every commit adds up.`
-                : `No streak yet. Push something today and start one.`;
+    // ── Dynamic heading & body copy ──
+    const heading = committed
+        ? `Good work today, ${displayName}.`
+        : `No commits yet today, ${displayName}.`;
+
+    const bodyText = committed
+        ? streak >= 30
+            ? `${streak} days straight. Today's ${todayCommits} commit${todayCommits !== 1 ? 's' : ''} keep that run alive.`
+            : streak >= 7
+                ? `${streak}-day streak and counting. You pushed ${todayCommits} commit${todayCommits !== 1 ? 's' : ''} today — solid.`
+                : streak > 0
+                    ? `${streak} days in a row. Today you pushed ${todayCommits} commit${todayCommits !== 1 ? 's' : ''}. Keep the momentum.`
+                    : `${todayCommits} commit${todayCommits !== 1 ? 's' : ''} today. Connect GitHub in settings to start tracking your streak.`
+        : streak >= 30
+            ? `${streak} days without a break. That record doesn't survive tonight without a commit.`
+            : streak >= 7
+                ? `${streak} days in. You're building something real — don't let it slip tonight.`
+                : streak > 0
+                    ? `${streak}-day streak on the line. One commit is all it takes.`
+                    : `No streak yet. Push something today and start one.`;
+
+    // ── Commits today stat color ──
+    const commitsColor = committed ? '#10b981' : '#ef4444';
+    const commitsDisplay = String(todayCommits);
+
+    // ── CTA ──
+    const ctaHref = committed ? `${APP_URL}/dashboard` : `https://github.com/${username}`;
+    const ctaLabel = committed ? 'View dashboard' : 'Open GitHub';
+    const ctaBg = committed ? '#10b981' : '#09090b';
+    const ctaTextColor = '#ffffff';
 
     const body = `
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
 
+        <!-- Heading -->
         <tr>
           <td style="padding-bottom:8px;">
             <h1 class="text-heading" style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Helvetica,Arial,sans-serif;font-size:26px;font-weight:700;color:#09090b;letter-spacing:-0.4px;line-height:1.3;">
-              No commits yet today, ${displayName}.
+              ${heading}
             </h1>
           </td>
         </tr>
 
+        <!-- Context line -->
         <tr>
           <td style="padding-bottom:4px;">
             <p class="text-body" style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;color:#52525b;line-height:1.75;">
-              ${contextLine}
+              ${bodyText}
             </p>
           </td>
         </tr>
 
         ${divider}
 
-        <!-- Stats -->
+        <!-- Stats row -->
         <tr>
           <td>
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr>
-                <td width="48%" class="stat-box" style="padding:18px 20px;background-color:#fafafa;border:1px solid #e4e4e7;border-radius:8px;">
-                  <p class="step-label" style="margin:0 0 6px;font-family:ui-monospace,'SF Mono',monospace;font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#a1a1aa;">
-                    Current streak
-                  </p>
-                  <p style="margin:0;font-family:ui-monospace,'SF Mono','Fira Code',monospace;font-size:30px;font-weight:700;line-height:1;color:${streak > 0 ? '#10b981' : '#a1a1aa'};">
-                    ${streak}<span style="font-size:13px;font-weight:400;color:#a1a1aa;margin-left:4px;">days</span>
+                <!-- Streak -->
+                <td width="31%" class="stat-box" style="padding:16px 18px;background-color:#fafafa;border:1px solid #e4e4e7;border-radius:8px;">
+                  <p class="stat-label" style="margin:0 0 6px;font-family:ui-monospace,'SF Mono',monospace;font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#a1a1aa;">Streak</p>
+                  <p style="margin:0;font-family:ui-monospace,'SF Mono','Fira Code',monospace;font-size:28px;font-weight:700;line-height:1;color:${streak > 0 ? '#10b981' : '#a1a1aa'};">
+                    ${streak}<span class="stat-unit" style="font-size:12px;font-weight:400;color:#a1a1aa;margin-left:3px;">days</span>
                   </p>
                 </td>
 
-                <td width="4%"></td>
+                <td width="3%"></td>
 
-                <td width="48%" class="stat-box" style="padding:18px 20px;background-color:#fafafa;border:1px solid #e4e4e7;border-radius:8px;">
-                  <p class="step-label" style="margin:0 0 6px;font-family:ui-monospace,'SF Mono',monospace;font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#a1a1aa;">
-                    Commits today
+                <!-- Today -->
+                <td width="31%" class="stat-box" style="padding:16px 18px;background-color:#fafafa;border:1px solid #e4e4e7;border-radius:8px;">
+                  <p class="stat-label" style="margin:0 0 6px;font-family:ui-monospace,'SF Mono',monospace;font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#a1a1aa;">Today</p>
+                  <p style="margin:0;font-family:ui-monospace,'SF Mono','Fira Code',monospace;font-size:28px;font-weight:700;line-height:1;color:${commitsColor};">
+                    ${commitsDisplay}<span class="stat-unit" style="font-size:12px;font-weight:400;color:#a1a1aa;margin-left:3px;">commits</span>
                   </p>
-                  <p style="margin:0;font-family:ui-monospace,'SF Mono','Fira Code',monospace;font-size:30px;font-weight:700;line-height:1;color:#ef4444;">
-                    0<span style="font-size:13px;font-weight:400;color:#a1a1aa;margin-left:4px;">commits</span>
+                </td>
+
+                <td width="3%"></td>
+
+                <!-- This week -->
+                <td width="32%" class="stat-box" style="padding:16px 18px;background-color:#fafafa;border:1px solid #e4e4e7;border-radius:8px;">
+                  <p class="stat-label" style="margin:0 0 6px;font-family:ui-monospace,'SF Mono',monospace;font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#a1a1aa;">This week</p>
+                  <p style="margin:0;font-family:ui-monospace,'SF Mono','Fira Code',monospace;font-size:28px;font-weight:700;line-height:1;color:#09090b;">
+                    ${weeklyCommits}<span class="stat-unit" style="font-size:12px;font-weight:400;color:#a1a1aa;margin-left:3px;">commits</span>
                   </p>
                 </td>
               </tr>
@@ -291,29 +311,46 @@ export async function sendStreakReminderEmail({
 
         ${divider}
 
+        <!-- Total commits bar -->
+        <tr>
+          <td style="padding-bottom:24px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td>
+                  <p class="stat-label" style="margin:0 0 4px;font-family:ui-monospace,'SF Mono',monospace;font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#a1a1aa;">All-time commits</p>
+                  <p class="text-heading" style="margin:0;font-family:ui-monospace,'SF Mono','Fira Code',monospace;font-size:20px;font-weight:700;color:#09090b;">${totalCommits.toLocaleString()}</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        ${!committed ? `
+        <!-- Warning note (only shown when no commits) -->
         <tr>
           <td style="padding-bottom:24px;">
             <p class="text-muted" style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;color:#71717a;line-height:1.75;">
               Push something small — a fix, a note, a doc update. The day resets at midnight.
             </p>
           </td>
-        </tr>
+        </tr>` : ''}
 
         <!-- CTA -->
         <tr>
           <td>
             <table role="presentation" cellpadding="0" cellspacing="0" border="0">
               <tr>
-                <td style="background-color:#09090b;border-radius:7px;">
-                  <a href="https://github.com/${username}" style="display:inline-block;padding:11px 22px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;letter-spacing:-0.1px;">
-                    Open GitHub
+                <td style="background-color:${ctaBg};border-radius:7px;">
+                  <a href="${ctaHref}" style="display:inline-block;padding:11px 22px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;font-weight:600;color:${ctaTextColor};text-decoration:none;letter-spacing:-0.1px;">
+                    ${ctaLabel}
                   </a>
                 </td>
+                ${committed ? '' : `
                 <td style="padding-left:20px;">
                   <a href="${APP_URL}/dashboard" class="cta-secondary" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;color:#71717a;text-decoration:none;">
                     View dashboard &rarr;
                   </a>
-                </td>
+                </td>`}
               </tr>
             </table>
           </td>
@@ -325,13 +362,26 @@ export async function sendStreakReminderEmail({
         const result = await resend.emails.send({
             from: FROM_EMAIL,
             to,
-            subject: subjectLine,
+            subject,
             html: emailShell(body),
         });
-        console.log(`Streak reminder sent to ${to}:`, result.data?.id);
+        console.log(`Daily digest sent to ${to} [committed=${committed}]:`, result.data?.id);
         return result;
     } catch (err) {
-        console.error(`Failed to send streak reminder to ${to}:`, err);
+        console.error(`Failed to send daily digest to ${to}:`, err);
         throw err;
     }
+}
+
+// Keep the old name as an alias for backward compat with cron.ts
+// (we'll update cron separately)
+export async function sendStreakReminderEmail(opts: {
+    to: string; name: string; username: string;
+    streak: number; todayCommits: number; totalCommits?: number; weeklyCommits?: number;
+}) {
+    return sendDailyDigestEmail({
+        ...opts,
+        totalCommits: opts.totalCommits ?? 0,
+        weeklyCommits: opts.weeklyCommits ?? 0,
+    });
 }
